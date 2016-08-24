@@ -24,17 +24,34 @@ def scrape(a):
         soup=BeautifulSoup(q.text,"html.parser")
         db=sqlite3.connect('my_sql')
         cur=db.cursor()
-        name="snapdeal0"
+        name="snap0"
+
         k=0
         while 1:
             try:
-                cur.execute('create table '+name+'(name text,price real,rating real,image text)')
+                cur.execute('create table '+name+'(name text,price real,rating real,image text,product text)')
                 break
             except:
                 k+=1
                 name=name[:-1]+str(int(name[-1])+k)
         n=soup.find_all('p')
+        pro=soup.find_all('a')
+        product=[]
+        k=0
+        for i in pro:
+            s=re.findall('.*a class="dp-widget-link".*href="(.*)".*',str(i))
+            if s!=[]:
+                if k==0:
+                    product.append(s)
+                    k=1
+                    continue
+                if k==1:
+                    k=0
+        #print n
+
         span=soup.find_all('span')
+        #for i in product:
+            #print i
         names=[]
         for i in n:
             s=re.findall('.*class="product-title".*',str(i))
@@ -63,9 +80,9 @@ def scrape(a):
         for i in range(len(rat)):
             j=images[i][0].split()
             if rat[i]==[]:
-                cur.execute("insert into "+name+" values(?,?,?,?)",(tname[i][0],float(pric[i][0]),-1,j[0][:-1]))
+                cur.execute("insert into "+name+" values(?,?,?,?,?)",(tname[i][0],float(pric[i][0]),-1,j[0][:-1],product[i][0]))
                 continue
-            cur.execute("insert into "+name+" values(?,?,?,?)",(tname[i][0],float(pric[i][0]),float(rat[i][0][1:-1]),j[0][:-1]))
+            cur.execute("insert into "+name+" values(?,?,?,?,?)",(tname[i][0],float(pric[i][0]),float(rat[i][0][1:-1]),j[0][:-1],product[i][0]))
         db.commit()
         print "Sort By:\n1.Name\n2.Price\n3.Rating\n"
         t=['','name','price','rating']
@@ -75,12 +92,13 @@ def scrape(a):
         l=int(raw_input())
         curs=db.execute('select * from '+name+' order by '+t[p]+' '+f[l])
         file=open(name+".html", "w")
-        file.write('<p>Search for:'+quer+'</p>')
-        file.write('<h1>Format=Name,Price,Rating,ImageLink</h1>')
+        file.write('<head><title>Compaare Baazar</title></head>')
+        file.write('<h1><p>Search for:'+quer+'</p></h1>')
+        file.write('<h1>Format=Name,Price,Rating,Image. Click on the name to buy</h1>')
         file.write('<table>')
         for row in curs:
-            file.write('<tr><td>'+row[0]+'</td><td><h3>Rs.'+str(row[1])+'</h3></td><td>'+str(row[2])+'')
-            file.write('<td><img src='+row[-1]+'></td></tr>')
+            file.write('<tr><td><a href="'+row[4]+'">'+row[0]+'</a></td><td><h3>Rs.'+str(row[1])+'</h3></td><td>'+str(row[2])+'')
+            file.write('<td><img src='+row[3]+'></td></tr>')
         file.write('</table>')
         db.close()
         file.close()
